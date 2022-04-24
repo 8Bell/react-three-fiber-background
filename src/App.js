@@ -1,130 +1,127 @@
 import './App.css';
 import * as THREE from 'three';
-import {OrbitControls} from 'three/examples/jsm/controls/OrbitControls';
-import {Canvas, extend, useFrame, useLoader, useThree} from 'react-three-fiber';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import { Canvas, extend, useFrame, useLoader, useThree } from 'react-three-fiber';
 import circleImg from './assets/circle.png';
 import { Suspense, useCallback, useMemo, useRef } from 'react';
-extend({OrbitControls});
+extend({ OrbitControls });
 
-function CameraControls(){
-  const {
-    camera,
-    gl: {domElement}
-  } = useThree();
+function CameraControls() {
+	const {
+		camera,
+		gl: { domElement },
+	} = useThree();
 
-  const controlsRef = useRef();
-  useFrame(() => controlsRef.current.update())
+	const controlsRef = useRef();
+	useFrame(() => controlsRef.current.update());
 
-return (
-  <orbitControls
-    ref={controlsRef}
-    args={[camera, domElement]}
-    autoRotate    
-    autoRotateSpeed={-0.0}
-    
-  />
- )
+	return (
+		<orbitControls
+			ref={controlsRef}
+			args={[camera, domElement]}
+			autoRotate
+			autoRotateSpeed={-0.0}
+		/>
+	);
 }
 
-function Points() { 
-  const imgTex = useLoader(THREE.TextureLoader, circleImg);
-  const bufferRef = useRef();
+function Points() {
+	const imgTex = useLoader(THREE.TextureLoader, circleImg);
+	const bufferRef = useRef();
 
-  let t = 15;
-  let f = 0.0002;
-  let a = 10 ;
-  const graph = useCallback((x, z) => {
-    return Math.sin(f * (x ** 2 + z ** 2 + t)) * a;
-  }, [t, f, a])
- 
-  const count = 100
-  const sep = 7
-  let positions = useMemo(() => {
-    let positions = []   
+	let t = 15;
+	let f = 0.0002;
+	let a = 30;
+	const graph = useCallback(
+		(x, z) => {
+			return Math.sin(f * (x ** 2 + z ** 2 + t)) * a;
+		},
+		[t, f, a]
+	);
 
-    for(let xi = 0; xi < count; xi ++){
-      for(let zi = 0; zi < count; zi++){
-        let x = sep * (xi - count / 2);
-        let z = sep * (zi - count / 2);
-        let y = graph(x, z); 
-        if(Math.sqrt(Math.abs(x)+Math.abs(z)) < count){ 
-        positions.push(x, y, z);}
-      }
-    }
-    
-    return new Float32Array(positions);
-  }, [count, sep, graph]) 
+	const count = 100;
+	const sep = 7;
+	let positions = useMemo(() => {
+		let positions = [];
 
-  useFrame(() => {
-    t += 50
-    
-    const position = bufferRef.current.array;
+		for (let xi = 0; xi < count; xi++) {
+			for (let zi = 0; zi < count; zi++) {
+				let x = sep * (xi - count / 2);
+				let z = sep * (zi - count / 2);
+				let y = graph(x, z);
+				if (Math.sqrt(Math.abs(x) + Math.abs(z)) < count) {
+					positions.push(x, y, z);
+				}
+			}
+		}
 
-    let i = 0;
-    for(let xi = 0; xi < count; xi ++){
-      for(let zi = 0; zi < count; zi++){
-        let x = sep * (xi - count / 2);
-        let z = sep * (zi - count / 2);
+		return new Float32Array(positions);
+	}, [count, sep, graph]);
 
-        positions[i + 1] = graph(x, z);
-        i += 3;
-      }
-    }
+	useFrame(() => {
+		t += 50;
 
-    bufferRef.current.needsUpdate = true; 
-  })
+		const position = bufferRef.current.array;
 
-  return(
-    <points>
-      <bufferGeometry attach="geometry">
-        <bufferAttribute
-          ref = {bufferRef}
-          attachObject={['attributes', 'position']}
-          array={positions}
-          count={positions.length / 3}
-          itemSize={3}
-        />
+		let i = 0;
+		for (let xi = 0; xi < count; xi++) {
+			for (let zi = 0; zi < count; zi++) {
+				let x = sep * (xi - count / 2);
+				let z = sep * (zi - count / 2);
 
-      </bufferGeometry>
+				positions[i + 1] = graph(x, z);
+				i += 3;
+			}
+		}
 
-      <pointsMaterial
-        attach="material"
-        map={imgTex}
-        color={0x999999}
-        size={2}
-        sizeAttenuation
-        transparent={false}
-        alphaTest={0.5}
-        opacity={1}
-      />
+		bufferRef.current.needsUpdate = true;
+	});
 
-    </points>
-  )
+	return (
+		<points>
+			<bufferGeometry attach='geometry'>
+				<bufferAttribute
+					ref={bufferRef}
+					attachObject={['attributes', 'position']}
+					array={positions}
+					count={positions.length / 3}
+					itemSize={3}
+				/>
+			</bufferGeometry>
+
+			<pointsMaterial
+				attach='material'
+				map={imgTex}
+				color={0x999999}
+				size={2}
+				sizeAttenuation
+				transparent={false}
+				alphaTest={0.5}
+				opacity={1}
+			/>
+		</points>
+	);
 }
 
-function AnimationCanvas(){
-  return(
-    <Canvas
-      colorManagement = {false}
-      camera = {{ position: [100, 10, 0], fov: 75 }}
-    >
-     <Suspense fallback = {null}>
-         <Points/>
-      </Suspense>
-      <CameraControls/>
-    </Canvas>
-  );
+function AnimationCanvas() {
+	return (
+		<Canvas colorManagement={false} camera={{ position: [100, 10, 0], fov: 75 }}>
+			<Suspense fallback={null}>
+				<Points />
+			</Suspense>
+			<CameraControls />
+		</Canvas>
+	);
 }
-
 
 function App() {
-  return (
-    <div className="anim">
-      <Suspense fallback = {<div> Loading...</div>}>
-         <AnimationCanvas/>
-      </Suspense>
-    </div>
-  );
+	return (
+		<div className='anim'>
+			<Suspense fallback={<div> Loading...</div>}>
+				<AnimationCanvas />
+			</Suspense>
+		</div>
+	);
 }
 
 export default App;
